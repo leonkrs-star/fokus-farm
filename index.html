@@ -303,6 +303,13 @@ canvas.confetti{position:fixed; inset:0; width:100vw; height:100vh; pointer-even
 .card.warn .wtx{display:flex; flex-direction:column; gap:8px; min-width:0}
 .card.warn p{font-size:.9rem}
 
+/* Spruch unter I Showed Up 3 */
+.enough{margin-top:8px; padding:10px 14px; border-radius:14px; border:1.5px dashed var(--line); text-align:center; display:flex; flex-direction:column; gap:2px; color:var(--muted)}
+.enough b{font:800 1.05rem var(--f-display); color:var(--ink); opacity:.55}
+.enough span{font-size:.84rem}
+.enough.on{border-style:solid; border-color:var(--wheat); background:linear-gradient(135deg,var(--wheat-soft),var(--surface) 80%); color:var(--ink)}
+.enough.on b{opacity:1; color:var(--bad)}
+
 </style></head><body>
 <div id="app"></div><div class="toast" id="toast" aria-live="polite"></div>
 <script>
@@ -696,7 +703,7 @@ function renderShowup(){
   const n=S.showup.n;
   return '<section class="card"><div class="eyebrow">Heute</div><h2>I Showed Up</h2><p class="note" style="margin-top:4px">Bis zu dreimal am Tag – immer, wenn du dich hinsetzt und loslegst. Jeder Klick belohnt dich sofort.</p><div class="shows">'+
     [0,1,2].map(i=>{ const done=i<n, next=i===n; return '<button class="show '+(done?'done':next?'next':'')+'" data-act="showup" data-i="'+i+'" '+(next?'':'disabled')+'><span class="snum">'+(done?IC.check:(i+1))+'</span><span><b>I Showed Up '+(i+1)+'</b><small>'+(done?'erledigt':rewardHTML(SHOWUP[i]))+'</small></span></button>'; }).join('')+
-    '</div></section>';
+    '</div><div class="enough'+(n>=3?' on':'')+'"><b>„Shut up, you’re so annoying!“</b><span>Genug gelernt für heute</span></div></section>';
 }
 function renderTimer(){
   const T=S.timer, left=timerLeft(), g=growingPlots().length;
