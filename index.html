@@ -304,11 +304,22 @@ canvas.confetti{position:fixed; inset:0; width:100vw; height:100vh; pointer-even
 .card.warn p{font-size:.9rem}
 
 /* Spruch unter I Showed Up 3 */
-.enough{margin-top:8px; padding:10px 14px; border-radius:14px; border:1.5px dashed var(--line); text-align:center; display:flex; flex-direction:column; gap:2px; color:var(--muted)}
+.enough{width:100%; margin-top:8px; padding:10px 14px; border-radius:14px; border:1.5px dashed var(--line); background:var(--surface); text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--muted); transition:transform .15s}
+.enough small{display:flex; gap:8px; align-items:center; justify-content:center; font:600 .78rem var(--f-mono); color:var(--muted); margin-top:2px}
+.enough small span{display:inline-flex; align-items:center; gap:3px}
+.enough small svg{width:13px; height:13px}
+.enough[disabled]{cursor:default}
+.enough.on{animation:breathe 2.2s ease-in-out infinite}
+.enough.on:hover{transform:translateY(-2px)}
+.enough.done{border-style:solid; border-color:transparent; background:var(--ok-soft); color:var(--ink)}
+.enough.done b{opacity:1}
 .enough b{font:800 1.05rem var(--f-display); color:var(--ink); opacity:.55}
 .enough span{font-size:.84rem}
 .enough.on{border-style:solid; border-color:var(--wheat); background:linear-gradient(135deg,var(--wheat-soft),var(--surface) 80%); color:var(--ink)}
 .enough.on b{opacity:1; color:var(--bad)}
+
+.burst.feierabend .bcard{border-color:var(--bad)}
+.burst.feierabend .rays{background:repeating-conic-gradient(var(--bad) 0deg 9deg, transparent 9deg 22.5deg)}
 
 </style></head><body>
 <div id="app"></div><div class="toast" id="toast" aria-live="polite"></div>
@@ -342,6 +353,7 @@ const CROPS=[
 const CMAP={}; CROPS.forEach(c=>CMAP[c.id]=c);
 const PLOT_PRICE=[0,0,0,0,100,150,220,300,400];
 const SHOWUP=[{xp:15,coins:8,water:2},{xp:20,coins:12,water:2},{xp:30,coins:20,water:3}];
+const ENOUGH={xp:25,coins:15,water:2};   // „Genug gelernt für heute“ nach I Showed Up 3
 const SIZES={
   s:{n:'Klein',xp:10,coins:5,water:1},
   m:{n:'Mittel',xp:25,coins:12,water:2},
@@ -602,6 +614,13 @@ function celebrateShowup(i,pt,r){
   burst('showup','<div class="bey">'+(i===2?'3 von 3 · Tag gerockt':(i+1)+' von 3')+'</div><div class="btitle">'+(i===2?'Unstoppable!':'I Showed Up!')+'</div><div class="bsub">'+rewardChips(r)+'</div>'+dots+
     (i===2?'<div class="bnote">Alle drei geschafft – stark.</div>':'<div class="bnote">'+(i===0?'Der schwerste Schritt ist gemacht.':'Du bist wieder da. Weiter so!')+'</div>'), i===2?2900:2300);
 }
+function celebrateEnough(pt){
+  const x=pt?pt.x:innerWidth/2, y=pt?pt.y:innerHeight/2;
+  tone(SND.show3); wave(x,y,cssVar('--bad')); wave(x,y,cssVar('--wheat'),150);
+  confetti(x,y,120,{power:13});
+  setTimeout(()=>{ confetti(0,innerHeight,80,{dir:-Math.PI/3,spread:0.7,power:19}); confetti(innerWidth,innerHeight,80,{dir:-Math.PI*2/3,spread:0.7,power:19}); },250);
+  burst('feierabend','<div class="bey">Feierabend</div><div class="btitle">Genug für heute!</div><div class="bsub">'+rewardChips(ENOUGH)+'</div><div class="bnote">Lass das Buch zu. Du hast es dir verdient.</div>',2800);
+}
 function celebrateHarvest(rect,art,c){
   const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
   tone(SND.harvest);
@@ -703,7 +722,7 @@ function renderShowup(){
   const n=S.showup.n;
   return '<section class="card"><div class="eyebrow">Heute</div><h2>I Showed Up</h2><p class="note" style="margin-top:4px">Bis zu dreimal am Tag – immer, wenn du dich hinsetzt und loslegst. Jeder Klick belohnt dich sofort.</p><div class="shows">'+
     [0,1,2].map(i=>{ const done=i<n, next=i===n; return '<button class="show '+(done?'done':next?'next':'')+'" data-act="showup" data-i="'+i+'" '+(next?'':'disabled')+'><span class="snum">'+(done?IC.check:(i+1))+'</span><span><b>I Showed Up '+(i+1)+'</b><small>'+(done?'erledigt':rewardHTML(SHOWUP[i]))+'</small></span></button>'; }).join('')+
-    '</div><div class="enough'+(n>=3?' on':'')+'"><b>„Shut up, you’re so annoying!“</b><span>Genug gelernt für heute</span></div></section>';
+    '</div>'+(()=>{ const e=!!S.showup.e, ready=n>=3&&!e; return '<button class="enough'+(ready?' on':'')+(e?' done':'')+'" data-act="enough" '+(ready?'':'disabled')+'><b>„Shut up, you’re so annoying!“</b><span>Genug gelernt für heute</span><small>'+(e?IC.check.replace('<svg','<svg width="14" height="14"')+' erledigt':rewardHTML(ENOUGH))+'</small></button>'; })()+'</section>';
 }
 function renderTimer(){
   const T=S.timer, left=timerLeft(), g=growingPlots().length;
@@ -839,6 +858,8 @@ document.addEventListener('click',e=>{
     case 'clear': S.farm.plots[+d.i]={}; save(); render(); break;
     case 'buyplot': { const pr=PLOT_PRICE[S.farm.n]; if(S.coins>=pr && S.farm.n<9){ S.coins-=pr; S.farm.n++; S.farm.plots.push({}); save(); render(); } break; }
     // I Showed Up
+    case 'enough': { tickDaily(); if(S.showup.n<3 || S.showup.e) break; const pt=lastPt;
+      S.showup.e=true; give(ENOUGH); checkAch(); save(); BIG=true; render(); BIG=false; celebrateEnough(pt); break; }
     case 'showup': { tickDaily(); const i=+d.i; if(i!==S.showup.n || i>2) break; const r=SHOWUP[i]; const pt=lastPt;
       S.showup.n++; S.stats.showups++; if(i===0) bumpStreak(); give(r); checkAch(); save();
       BIG=true; render(); BIG=false; celebrateShowup(i,pt,r); break; }
